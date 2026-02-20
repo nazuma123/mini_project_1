@@ -1,0 +1,49 @@
+import os
+
+
+import pandas as pd
+from flask import Flask, render_template, request
+from sklearn.linear_model import LinearRegression
+
+app = Flask(__name__)
+
+# Check if data exists before starting
+if not os.path.exists('data.csv'):
+    print("ERROR: data.csv not found in the project folder!")
+
+
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    prediction = None
+    try:
+        df = pd.read_csv('data.csv')
+        # Training the model
+        features = ['bedrooms', 'bathrooms', 'sqft_living', 'sqft_lot', 'floors', 'waterfront', 'view', 'condition']
+        X = df[features]
+        y = df['price']
+        model = LinearRegression().fit(X, y)
+
+        if request.method == 'POST' and 'predict_btn' in request.form:
+            # Match these names EXACTLY to your index.html input names
+            user_data = [[
+                float(request.form.get('bedrooms', 0)),
+                float(request.form.get('bathrooms', 0)),
+                float(request.form.get('sqft_living', 0)),
+                float(request.form.get('sqft_lot', 0)),
+                float(request.form.get('floors', 0)),
+                float(request.form.get('waterfront', 0)),
+                float(request.form.get('view', 0)),
+                float(request.form.get('condition', 0))
+            ]]
+            res = model.predict(user_data)[0]
+            prediction = f"${max(0, res):,.2f}"
+
+        return render_template('index.html', prediction=prediction)
+
+    except Exception as e:
+        print(f"DETAILED ERROR: {e}")  # This prints the error to your PyCharm console
+        return f'Backend Error: {e}. Check PyCharm Console.'
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
